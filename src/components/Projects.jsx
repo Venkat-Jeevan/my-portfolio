@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { get, push,ref, remove } from "firebase/database";
+import { get, push, ref, remove, update } from "firebase/database";
 
 const Projects = () => {
   const [selectedProject, setSelectedProject] = useState(null);
@@ -56,29 +56,40 @@ const Projects = () => {
   // Update project in Firestore
   const updateProject = async () => {
     if (newProject.title.trim() && newProject.description.trim()) {
-      // const projectRef = doc(db, "projects", editingProject.id);
-      // await updateDoc(projectRef, {
-      //   ...newProject,
-      //   tech: newProject.tech.filter(tech => tech.trim() !== ''),
-      //   image: newProject.image || 'https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=500&h=300&fit=crop',
-      //   liveDemo: newProject.liveDemo || '#',
-      //   github: newProject.github || '#'
-      // });
-      // setProjects(projects.map(project =>
-      //   project.id === editingProject.id
-      //     ? { ...newProject, id: editingProject.id }
-      //     : project
-      // ));
-      // setNewProject({
-      //   title: '',
-      //   description: '',
-      //   image: '',
-      //   tech: [''],
-      //   liveDemo: '',
-      //   github: ''
-      // });
-      // setShowEditModal(false);
-      // setEditingProject(null);
+      try {
+        const dbRef = ref(db, `projects/${editingProject.key}`);
+        await update(ref(db, `projects/${editingProject.key}`), {
+          title: newProject.title,
+          description: newProject.description,
+          image: newProject.image || '',
+          tech: newProject.tech.filter(tech => tech.trim() !== ''),
+          liveDemo: newProject.liveDemo || '',
+          github: newProject.github || ''
+        });
+        
+        // Update local state
+        const updatedProjects = projects.map(project =>
+          project.key === editingProject.key
+            ? { ...newProject, key: editingProject.key }
+            : project
+        );
+        setProjects(updatedProjects);
+        
+        // Reset form and close modal
+        setNewProject({
+          title: '',
+          description: '',
+          image: '',
+          tech: [''],
+          liveDemo: '',
+          github: ''
+        });
+        setShowEditModal(false);
+        setEditingProject(null);
+      } catch (error) {
+        console.error('Error updating project:', error);
+        alert('Failed to update project. Please try again.');
+      }
     } else {
       alert('Please fill in at least the title and description fields.');
     }
